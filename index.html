@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#060d1f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DB Trends">
+<title>De Belegger Trends</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* ─── Reset ─────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060d1f;
+  --s1:#0d1629;
+  --s2:#131e35;
+  --s3:#1a2845;
+  --brd:#1e3358;
+  --txt:#e8edf5;
+  --muted:#5a7099;
+  --soft:#8ba3c9;
+  --acc:#2196f3;
+  --acc2:#7c3aed;
+  --grn:#10b981;
+  --amb:#f59e0b;
+  --red:#ef4444;
+  --font:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --r8:8px;--r12:12px;--r16:16px;--r20:20px;
+  --sat:env(safe-area-inset-top,0px);
+  --sab:env(safe-area-inset-bottom,0px);
+}
+html{height:100%;background:var(--bg)}
+body{font-family:var(--font);color:var(--txt);background:var(--bg);min-height:100%;min-height:100dvh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button{cursor:pointer;font-family:var(--font)}
+a{color:inherit;text-decoration:none}
+
+/* ─── Header ────────────────────────────────────────── */
+.hdr{
+  position:sticky;top:0;z-index:80;
+  background:rgba(6,13,31,.88);
+  backdrop-filter:saturate(180%) blur(16px);
+  -webkit-backdrop-filter:saturate(180%) blur(16px);
+  border-bottom:1px solid var(--brd);
+  padding:calc(14px + var(--sat)) 18px 14px;
+}
+.hdr-inner{display:flex;align-items:center;gap:12px;max-width:960px;margin:0 auto}
+.logo-wrap{display:flex;align-items:center;gap:11px;flex:1;min-width:0}
+.logo-icon{
+  width:38px;height:38px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,#1a7fe8,#7c3aed);
+  display:grid;place-items:center;
+  font-size:12px;font-weight:800;color:#fff;letter-spacing:-.5px
+}
+.logo-name{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logo-tag{font-size:10px;color:var(--muted);margin-top:1px;letter-spacing:.03em}
+.hdr-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.pill{
+  display:flex;align-items:center;gap:6px;
+  background:var(--s2);border:1px solid var(--brd);
+  border-radius:20px;padding:5px 11px;
+  font-size:11px;color:var(--muted);font-weight:500
+}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-live{background:var(--grn);animation:blink 2.4s ease-in-out infinite}
+.dot-load{background:var(--amb);animation:blink .8s ease-in-out infinite}
+.dot-err{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.icon-btn{
+  width:34px;height:34px;border-radius:var(--r8);
+  border:1px solid var(--brd);background:var(--s2);color:var(--soft);
+  display:grid;place-items:center;font-size:15px;
+  transition:background .12s,color .12s
+}
+.icon-btn:hover{background:var(--s3);color:var(--txt)}
+.icon-btn.active{border-color:var(--grn);color:var(--grn);background:rgba(16,185,129,.08)}
+
+/* ─── Nav ────────────────────────────────────────────── */
+.nav{background:var(--s1);border-bottom:1px solid var(--brd);overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav-row{display:flex;max-width:960px;margin:0 auto;padding:0 18px}
+.ntab{
+  padding:12px 15px;font-size:13px;font-weight:500;color:var(--muted);
+  border-bottom:2px solid transparent;white-space:nowrap;
+  transition:color .12s,border-color .12s;flex-shrink:0;background:none;border-left:none;border-right:none;border-top:none
+}
+.ntab:hover:not(.on){color:var(--soft)}
+.ntab.on{color:var(--acc);border-bottom-color:var(--acc)}
+.nbadge{
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--red);color:#fff;border-radius:10px;
+  font-size:9px;font-weight:700;min-width:15px;height:15px;padding:0 3px;
+  margin-left:4px;vertical-align:middle
+}
+
+/* ─── Toasts ─────────────────────────────────────────── */
+#toast-area{position:fixed;top:calc(14px + var(--sat));right:14px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:300px}
+.toast{
+  background:var(--s2);border:1px solid var(--brd);border-radius:var(--r12);
+  padding:11px 14px;pointer-events:all;min-width:220px;
+  animation:tin .22s ease;
+  box-shadow:0 8px 32px rgba(0,0,0,.5)
+}
+.toast.spike{border-color:rgba(239,68,68,.35)}
+.toast-hd{font-size:13px;font-weight:600;margin-bottom:2px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.toast-bd{font-size:12px;color:var(--soft)}
+.toast-x{background:none;border:none;color:var(--muted);font-size:15px;padding:0;line-height:1;flex-shrink:0}
+@keyframes tin{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes tout{to{transform:translateX(110%);opacity:0}}
+
+/* ─── Page ───────────────────────────────────────────── */
+.page{max-width:960px;margin:0 auto;padding:16px 18px calc(16px + var(--sab))}
+
+/* ─── Install banner ─────────────────────────────────── */
+#install-bar{
+  display:none;align-items:center;gap:10px;
+  background:linear-gradient(135deg,rgba(33,150,243,.09),rgba(124,58,237,.09));
+  border:1px solid rgba(33,150,243,.2);border-radius:var(--r12);
+  padding:12px 14px;margin-bottom:14px
+}
+#install-bar.show{display:flex}
+.ib-icon{font-size:22px;flex-shrink:0}
+.ib-copy{flex:1;min-width:0}
+.ib-title{font-size:13px;font-weight:600;color:#60a5fa}
+.ib-sub{font-size:11px;color:var(--muted)}
+.ib-btn{background:var(--acc);color:#fff;border:none;border-radius:var(--r8);padding:7px 14px;font-size:12px;font-weight:600;white-space:nowrap}
+.ib-close{background:none;border:none;color:var(--muted);font-size:17px;padding:2px;flex-shrink:0}
+
+/* ─── Stats bar ──────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:540px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stat{background:var(--s1);border:1px solid var(--brd);border-radius:var(--r12);padding:13px 15px}
+.stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.stat-val{font-size:22px;font-weight:700;color:var(--txt);font-family:var(--mono);line-height:1}
+.stat-sub{font-size:10px;color:var(--muted);margin-top:3px}
+
+/* ─── Refresh row ────────────────────────────────────── */
+.refrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;flex-wrap:wrap}
+.refrow-info{font-size:12px;color:var(--muted)}
+.ref-btn{
+  display:flex;align-items:center;gap:6px;
+  background:var(--s1);border:1px solid var(--brd);border-radius:var(--r8);
+  padding:7px 13px;font-size:12px;font-weight:500;color:var(--soft);
+  transition:background .12s
+}
+.ref-btn:hover:not(:disabled){background:var(--s2);color:var(--txt)}
+.ref-btn:disabled{opacity:.45;cursor:default}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinning{animation:spin .7s linear infinite;display:inline-block}
+
+/* ─── Card ───────────────────────────────────────────── */
+.card{background:var(--s1);border:1px solid var(--brd);border-radius:var(--r16);overflow:hidden;margin-bottom:12px}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--brd)}
+.card-title{font-size:14px;font-weight:600}
+.card-meta{font-size:11px;color:var(--muted)}
+
+/* ─── Trend item ─────────────────────────────────────── */
+.titem{display:flex;align-items:flex-start;gap:11px;padding:11px 16px;border-bottom:1px solid rgba(30,51,88,.45);transition:background .1s}
+.titem:last-child{border-bottom:none}
+.titem:hover{background:var(--s2)}
+.trank{
+  width:26px;height:26px;border-radius:var(--r8);
+  background:var(--s2);border:1px solid var(--brd);
+  display:grid;place-items:center;font-size:11px;font-weight:700;
+  color:var(--muted);font-family:var(--mono);flex-shrink:0;margin-top:1px
+}
+.trank.hot{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--red)}
+.tbody{flex:1;min-width:0}
+.tkw{font-size:14px;font-weight:600;color:var(--txt);margin-bottom:3px;word-break:break-word;line-height:1.3}
+.texpl{font-size:12px;color:var(--soft);margin-bottom:6px;line-height:1.4}
+.tmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tscores{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.tscore{display:flex;flex-direction:column;align-items:center;gap:1px}
+.ts-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.ts-val{font-size:11px;font-weight:700;font-family:var(--mono);padding:2px 6px;border-radius:5px}
+.sv-h{background:rgba(16,185,129,.13);color:#34d399;border:1px solid rgba(16,185,129,.22)}
+.sv-m{background:rgba(245,158,11,.13);color:#fbbf24;border:1px solid rgba(245,158,11,.22)}
+.sv-l{background:rgba(90,112,153,.13);color:#8ba3c9;border:1px solid rgba(90,112,153,.18)}
+
+/* ─── Cluster pill ───────────────────────────────────── */
+.cpill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.c-beleggen{background:#6366f115;color:#a5b4fc;border:1px solid #6366f125}
+.c-aandelen{background:#8b5cf615;color:#c4b5fd;border:1px solid #8b5cf625}
+.c-etf{background:#0ea5e915;color:#7dd3fc;border:1px solid #0ea5e925}
+.c-crypto{background:#f59e0b15;color:#fcd34d;border:1px solid #f59e0b25}
+.c-rente{background:#10b98115;color:#6ee7b7;border:1px solid #10b98125}
+.c-sparen{background:#14b8a615;color:#5eead4;border:1px solid #14b8a625}
+.c-macro{background:#ef444415;color:#fca5a5;border:1px solid #ef444425}
+.c-economie{background:#f9731615;color:#fdba74;border:1px solid #f9731625}
+.c-hypotheek{background:#ec489915;color:#f9a8d4;border:1px solid #ec489925}
+.c-huizenmarkt{background:#a855f715;color:#d8b4fe;border:1px solid #a855f725}
+.c-belasting{background:#06b6d415;color:#67e8f9;border:1px solid #06b6d425}
+.c-pensioen{background:#84cc1615;color:#bef264;border:1px solid #84cc1625}
+.c-overig,.c-default{background:#33415515;color:#94a3b8;border:1px solid #33415525}
+
+/* ─── Alert item ─────────────────────────────────────── */
+.aitem{padding:12px 16px;border-bottom:1px solid rgba(30,51,88,.45)}
+.aitem:last-child{border-bottom:none}
+.aitem-top{display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap}
+.akw{font-size:14px;font-weight:600;color:var(--amb)}
+.atime{font-size:10px;color:var(--muted);font-family:var(--mono);margin-left:auto;flex-shrink:0}
+.areason{font-size:12px;color:var(--soft)}
+
+/* ─── Empty ──────────────────────────────────────────── */
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty-ico{font-size:32px;margin-bottom:10px}
+.empty-ttl{font-size:14px;font-weight:500;color:var(--soft);margin-bottom:5px}
+.empty-sub{font-size:12px}
+
+/* ─── Setup ──────────────────────────────────────────── */
+.setup-block{margin-bottom:24px}
+.setup-hd{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.setup-step{display:flex;gap:11px;margin-bottom:13px}
+.sn{width:23px;height:23px;border-radius:50%;background:var(--s2);border:1px solid var(--brd);display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--muted);flex-shrink:0;margin-top:2px}
+.sc h4{font-size:13px;font-weight:600;margin-bottom:3px}
+.sc p{font-size:12px;color:var(--soft);line-height:1.5;margin-bottom:6px}
+.cbox{
+  background:var(--bg);border:1px solid var(--brd);border-radius:var(--r8);
+  padding:8px 11px;font-family:var(--mono);font-size:11px;color:#7dd3fc;
+  cursor:pointer;position:relative;word-break:break-all;transition:border-color .12s
+}
+.cbox:hover{border-color:var(--acc)}
+.cbox-ok{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--grn);font-family:var(--font)}
+.note{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.18);border-radius:var(--r8);padding:9px 12px;font-size:12px;color:#fcd34d;margin-bottom:7px}
+.ok-box{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.18);border-radius:var(--r8);padding:9px 12px;font-size:12px;color:#6ee7b7;margin-bottom:7px}
+.divider{border:none;border-top:1px solid var(--brd);margin:20px 0}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="hdr">
+  <div class="hdr-inner">
+    <div class="logo-wrap">
+      <div class="logo-icon">DB</div>
+      <div>
+        <div class="logo-name">De Belegger Trends</div>
+        <div class="logo-tag">Financiële trendmonitor · Nederland</div>
+      </div>
+    </div>
+    <div class="hdr-actions">
+      <div class="pill">
+        <div class="dot dot-live" id="status-dot"></div>
+        <span id="status-txt">Live</span>
+      </div>
+      <button class="icon-btn" id="notif-btn" title="Meldingen" onclick="toggleNotif()">🔔</button>
+    </div>
+  </div>
+</header>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="nav-row">
+    <button class="ntab on"  onclick="tab('top10',this)">📈 Top 10</button>
+    <button class="ntab"     onclick="tab('spikes',this)">🚀 Uitschieters</button>
+    <button class="ntab"     onclick="tab('alerts',this)">🔔 Meldingen<span class="nbadge" id="abadge" style="display:none">0</span></button>
+    <button class="ntab"     onclick="tab('setup',this)">⚙️ Instellen</button>
+  </div>
+</nav>
+
+<!-- Toasts -->
+<div id="toast-area"></div>
+
+<!-- Main -->
+<div class="page">
+
+  <!-- Install banner -->
+  <div id="install-bar">
+    <div class="ib-icon">📲</div>
+    <div class="ib-copy">
+      <div class="ib-title">Installeer als app</div>
+      <div class="ib-sub">Snel toegang op telefoon &amp; laptop</div>
+    </div>
+    <button class="ib-btn" id="ib-btn">Installeren</button>
+    <button class="ib-close" onclick="dismissInstall()">✕</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat"><div class="stat-lbl">Trends</div><div class="stat-val" id="sv-total">—</div><div class="stat-sub">Deze ronde</div></div>
+    <div class="stat"><div class="stat-lbl">Financieel</div><div class="stat-val" id="sv-fin">—</div><div class="stat-sub">Na filter</div></div>
+    <div class="stat"><div class="stat-lbl">Spikes</div><div class="stat-val" id="sv-spk">—</div><div class="stat-sub">Score > 0.70</div></div>
+    <div class="stat"><div class="stat-lbl">Update</div><div class="stat-val" id="sv-time" style="font-size:15px">—</div><div class="stat-sub" id="sv-next">Volgende: —</div></div>
+  </div>
+
+  <!-- Refresh -->
+  <div class="refrow">
+    <div class="refrow-info" id="last-upd">Laden...</div>
+    <button class="ref-btn" id="ref-btn" onclick="load(true)"><span id="ref-ico">↻</span> Vernieuwen</button>
+  </div>
+
+  <!-- Tab: Top 10 -->
+  <div id="tab-top10">
+    <div class="card">
+      <div class="card-head"><span class="card-title">📈 Top 10 Actuele Trends</span><span class="card-meta">Composite · NL</span></div>
+      <div id="lst-top10"><div class="empty"><div class="empty-ico">⏳</div><div class="empty-ttl">Data laden</div></div></div>
+    </div>
+  </div>
+
+  <!-- Tab: Spikes -->
+  <div id="tab-spikes" style="display:none">
+    <div class="card">
+      <div class="card-head"><span class="card-title">🚀 Top 10 Uitschieters</span><span class="card-meta">Spike score · NL</span></div>
+      <div id="lst-spikes"><div class="empty"><div class="empty-ico">⏳</div><div class="empty-ttl">Data laden</div></div></div>
+    </div>
+  </div>
+
+  <!-- Tab: Alerts -->
+  <div id="tab-alerts" style="display:none">
+    <div class="card">
+      <div class="card-head"><span class="card-title">🔔 Meldingen</span><span class="card-meta">Spike > 0.70 of nieuw in top 10</span></div>
+      <div id="lst-alerts"><div class="empty"><div class="empty-ico">🔕</div><div class="empty-ttl">Nog geen meldingen</div><div class="empty-sub">Verschijnt als spike_score > 0.70</div></div></div>
+    </div>
+  </div>
+
+  <!-- Tab: Setup -->
+  <div id="tab-setup" style="display:none">
+    <div class="card">
+      <div class="card-head"><span class="card-title">⚙️ Eenmalige installatie</span><span class="card-meta">~30 minuten</span></div>
+      <div style="padding:18px 16px">
+
+        <div class="setup-block">
+          <div class="setup-hd">📊 Stap 1 — Google Sheets klaarzetten <span style="font-size:11px;color:var(--muted);font-weight:400">(5 min)</span></div>
+          <div class="setup-step"><div class="sn">1</div><div class="sc"><h4>Maak een nieuw Google Spreadsheet</h4><p>Ga naar sheets.google.com → Nieuw → Naam: <strong>De Belegger Trends</strong></p></div></div>
+          <div class="setup-step"><div class="sn">2</div><div class="sc"><h4>Open het Apps Script</h4><p>Extensies → Apps Script → verwijder alle code → plak de volledige inhoud van <strong>Code.gs</strong> (zit in de gedownloade zip)</p></div></div>
+          <div class="setup-step"><div class="sn">3</div><div class="sc"><h4>Vul je API-sleutels in bovenaan Code.gs</h4><p>Vervang de 3 JOUW_... waarden met je echte sleutels (zie stap 2 en 3 hieronder)</p></div></div>
+          <div class="setup-step"><div class="sn">4</div><div class="sc"><h4>Voer setupSheets() uit</h4><p>Kies in het dropdown-menu de functie <strong>setupSheets</strong> → klik Uitvoeren → geef toestemming</p></div></div>
+          <div class="setup-step"><div class="sn">5</div><div class="sc"><h4>Voer setupTrigger() uit</h4><p>Kies in het dropdown-menu <strong>setupTrigger</strong> → klik Uitvoeren. Het systeem draait nu elke 15 minuten automatisch.</p></div></div>
+          <div class="setup-step"><div class="sn">6</div><div class="sc">
+            <h4>Publiceer tabblad als CSV voor de app</h4>
+            <p>Bestand → Delen → Publiceren op het web → Tabblad "Ranked Trends" → CSV → Publiceren → kopieer de URL</p>
+            <p>Vul die URL hieronder in en klik Opslaan:</p>
+            <input id="sheets-url-input" type="text" placeholder="https://docs.google.com/spreadsheets/d/.../pub?...output=csv"
+              style="width:100%;background:var(--bg);border:1px solid var(--brd);border-radius:var(--r8);padding:8px 11px;font-size:12px;color:var(--txt);font-family:var(--mono);margin-bottom:8px;outline:none"
+              oninput="dirtyConfig=true">
+            <button onclick="saveConfig()" style="background:var(--acc);color:#fff;border:none;border-radius:var(--r8);padding:8px 16px;font-size:13px;font-weight:600">Opslaan</button>
+            <span id="save-ok" style="font-size:12px;color:var(--grn);margin-left:10px;display:none">✓ Opgeslagen</span>
+          </div></div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="setup-block">
+          <div class="setup-hd">🤖 Stap 2 — Anthropic API key <span style="font-size:11px;color:var(--muted);font-weight:400">(2 min)</span></div>
+          <div class="setup-step"><div class="sn">1</div><div class="sc">
+            <h4>Maak een account op console.anthropic.com</h4>
+            <div class="cbox" onclick="copyBox(this,'https://console.anthropic.com/settings/keys')">https://console.anthropic.com/settings/keys</div>
+          </div></div>
+          <div class="setup-step"><div class="sn">2</div><div class="sc">
+            <h4>Maak een nieuwe API key aan</h4>
+            <p>API Keys → Create Key → kopieer de key (begint met sk-ant-...)</p>
+            <p>Plak de key in <strong>Code.gs</strong> bij <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">ANTHROPIC_API_KEY</code></p>
+            <div class="note">💡 Kosten: ~€2–5 per maand bij elke-15-minuten gebruik</div>
+          </div></div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="setup-block">
+          <div class="setup-hd">📱 Stap 3 — Telegram bot <span style="font-size:11px;color:var(--muted);font-weight:400">(5 min)</span></div>
+          <div class="setup-step"><div class="sn">1</div><div class="sc">
+            <h4>Open Telegram → stuur naar @BotFather</h4>
+            <div class="cbox" onclick="copyBox(this,'/newbot')">/newbot</div>
+            <p style="margin-top:6px">Naam: <strong>De Belegger Trends</strong> · Username mag eindigen op Bot</p>
+          </div></div>
+          <div class="setup-step"><div class="sn">2</div><div class="sc">
+            <h4>Kopieer het Bot Token en vul in Code.gs</h4>
+            <p>Ziet eruit als: <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">7312345678:AAFxxx</code></p>
+          </div></div>
+          <div class="setup-step"><div class="sn">3</div><div class="sc">
+            <h4>Maak een teamgroep → voeg bot toe als admin</h4>
+            <p>Stuur een bericht in de groep. Ga daarna naar deze URL (vervang TOKEN):</p>
+            <div class="cbox" onclick="copyBox(this,'https://api.telegram.org/botTOKEN/getUpdates')">https://api.telegram.org/bot<strong>TOKEN</strong>/getUpdates</div>
+            <p style="margin-top:6px">Zoek in de JSON naar "chat" → "id" — dat is je Chat ID. Vul in bij <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">TELEGRAM_CHAT_ID</code> in Code.gs</p>
+          </div></div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="setup-block">
+          <div class="setup-hd">🚀 Stap 4 — App deployen op Vercel <span style="font-size:11px;color:var(--muted);font-weight:400">(5 min)</span></div>
+          <div class="setup-step"><div class="sn">1</div><div class="sc">
+            <h4>Gratis account op Vercel</h4>
+            <div class="cbox" onclick="copyBox(this,'https://vercel.com/signup')">https://vercel.com/signup</div>
+          </div></div>
+          <div class="setup-step"><div class="sn">2</div><div class="sc">
+            <h4>Deploy de app</h4>
+            <p>vercel.com/new → sleep de <strong>app-map</strong> (uit de zip) op het scherm → Deploy. Je krijgt een URL zoals <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">belegger-trends.vercel.app</code></p>
+          </div></div>
+          <div class="setup-step"><div class="sn">3</div><div class="sc">
+            <h4>Installeer op telefoon &amp; laptop</h4>
+            <p><strong>iPhone:</strong> Safari → Deel → Voeg toe aan beginscherm<br>
+            <strong>Android:</strong> Chrome → ⋮ → Toevoegen aan beginscherm<br>
+            <strong>Laptop:</strong> Chrome/Edge → installeer-icoon in adresbalk</p>
+            <div class="ok-box">✓ Klaar! De app ontvangt nu automatisch data van je Google Sheet.</div>
+          </div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// ─── Config opslag ───────────────────────────────────────
+const LS = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set: (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+const DEMO_DATA = [
+  {keyword:'ECB rentebesluit',cluster:'rente',relevance_score:.95,spike_score:.88,confidence_score:.91,trend_type:'actueel',explanation:'ECB vergadering verwacht — rentebeleid in focus'},
+  {keyword:'hypotheekrente vergelijken',cluster:'hypotheek',relevance_score:.92,spike_score:.82,confidence_score:.87,trend_type:'actueel',explanation:'Stijgende interesse hypotheekrentes na ECB-signalen'},
+  {keyword:'bitcoin koers',cluster:'crypto',relevance_score:.88,spike_score:.91,confidence_score:.83,trend_type:'actueel',explanation:'Crypto marktbeweging trekt zoekopdrachten'},
+  {keyword:'huizenprijzen 2025',cluster:'huizenmarkt',relevance_score:.90,spike_score:.76,confidence_score:.85,trend_type:'actueel',explanation:'Kwartaalrapportage Kadaster verwacht'},
+  {keyword:'inflatie nederland',cluster:'macro',relevance_score:.89,spike_score:.79,confidence_score:.91,trend_type:'actueel',explanation:'Maandelijkse CBS-cijfers gepubliceerd'},
+  {keyword:'box 3 belasting uitspraak',cluster:'belasting',relevance_score:.87,spike_score:.85,confidence_score:.88,trend_type:'actueel',explanation:'Nieuw rechtbankvonnis drijft zoekopdrachten'},
+  {keyword:'msci world etf kopen',cluster:'etf',relevance_score:.85,spike_score:.68,confidence_score:.82,trend_type:'actueel',explanation:'Indexbeleggen blijft groeien in populariteit'},
+  {keyword:'recessie duitsland',cluster:'macro',relevance_score:.83,spike_score:.74,confidence_score:.80,trend_type:'actueel',explanation:'Nieuwe BBP-cijfers duiden op krimp'},
+  {keyword:'aandelen kopen beginners',cluster:'beleggen',relevance_score:.81,spike_score:.62,confidence_score:.78,trend_type:'actueel',explanation:'Seizoenspatroon: spaargeld gaat naar beurs'},
+  {keyword:'pensioen eerder stoppen',cluster:'pensioen',relevance_score:.79,spike_score:.65,confidence_score:.75,trend_type:'actueel',explanation:'FIRE-beweging piek na mediaaandacht'},
+  {keyword:'goud prijs record',cluster:'macro',relevance_score:.86,spike_score:.93,confidence_score:.84,trend_type:'uitschieter',explanation:'Goudprijs op recordhoogte — vlucht naar veilig'},
+  {keyword:'S&P 500 daling',cluster:'aandelen',relevance_score:.91,spike_score:.89,confidence_score:.86,trend_type:'uitschieter',explanation:'Beursvolatiliteit hoog na macro-data VS'},
+];
+
+// ─── State ───────────────────────────────────────────────
+let data = [], alerts = LS.get('alerts') || [], prevKws = new Set(LS.get('prevKws') || []);
+let newAlertsCount = 0, refreshTimer, countdownTimer, nextAt, deferredInstall;
+let dirtyConfig = false;
+let sheetsUrl = LS.get('sheetsUrl') || '';
+
+// ─── Init ────────────────────────────────────────────────
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredInstall = e;
+  if (!LS.get('installDismissed')) document.getElementById('install-bar').classList.add('show');
+});
+
+document.getElementById('ib-btn').onclick = async () => {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  await deferredInstall.userChoice;
+  deferredInstall = null;
+  document.getElementById('install-bar').classList.remove('show');
+};
+
+function dismissInstall() { LS.set('installDismissed', 1); document.getElementById('install-bar').classList.remove('show'); }
+
+// Pre-fill saved URL
+if (sheetsUrl) document.getElementById('sheets-url-input').value = sheetsUrl;
+
+// ─── Data loading ────────────────────────────────────────
+async function load(manual) {
+  const dot = document.getElementById('status-dot');
+  const stxt = document.getElementById('status-txt');
+  const ico = document.getElementById('ref-ico');
+  const btn = document.getElementById('ref-btn');
+  dot.className = 'dot dot-load'; stxt.textContent = 'Laden…';
+  ico.className = 'spinning'; btn.disabled = true;
+
+  try {
+    const rows = sheetsUrl && !sheetsUrl.includes('JOUW_') ? await fetchSheets() : DEMO_DATA;
+    data = rows;
+
+    const top10   = [...rows].sort((a,b) => comp(b)-comp(a)).slice(0,10);
+    const spikes  = [...rows].sort((a,b) => val(b.spike_score)-val(a.spike_score)).slice(0,10);
+
+    render('lst-top10',  top10,  false);
+    render('lst-spikes', spikes, true);
+
+    const spikeCount = rows.filter(r => val(r.spike_score) > .70).length;
+    document.getElementById('sv-total').textContent = rows.length;
+    document.getElementById('sv-fin').textContent   = rows.length;
+    document.getElementById('sv-spk').textContent   = spikeCount;
+
+    const now = new Date();
+    document.getElementById('sv-time').textContent = now.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('last-upd').textContent = 'Bijgewerkt om ' + now.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}) + (!sheetsUrl || sheetsUrl.includes('JOUW_') ? ' · demo' : '');
+
+    checkAlerts(top10, now.toISOString());
+    scheduleNext();
+    dot.className = 'dot dot-live';
+    stxt.textContent = !sheetsUrl || sheetsUrl.includes('JOUW_') ? 'Demo' : 'Live';
+  } catch(e) {
+    dot.className = 'dot dot-err'; stxt.textContent = 'Fout';
+    toast('⚠️ Laad fout', e.message, '');
+  } finally {
+    ico.className = ''; btn.disabled = false;
+  }
+}
+
+async function fetchSheets() {
+  const url = sheetsUrl + (sheetsUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('Sheets fout: ' + r.status);
+  const txt = await r.text();
+  return parseCSV(txt);
+}
+
+function parseCSV(txt) {
+  const lines = txt.trim().split('\n');
+  if (lines.length < 2) return [];
+  const hdr = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
+  return lines.slice(1).map(ln => {
+    const vals = ln.match(/("([^"]*)"|[^,]*)/g).map(v => v.replace(/^"|"$/g,'').trim());
+    const o = {};
+    hdr.forEach((h,i) => o[h] = vals[i] || '');
+    return o;
+  }).filter(r => r.keyword);
+}
+
+// ─── Rendering ───────────────────────────────────────────
+function render(id, items, spikePrimary) {
+  const el = document.getElementById(id);
+  if (!items.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">📭</div><div class="empty-ttl">Geen data</div><div class="empty-sub">Controleer de Google Sheets koppeling in ⚙️ Instellen</div></div>'; return; }
+  el.innerHTML = items.map((it,i) => {
+    const sp = val(it.spike_score), hot = sp > .85;
+    return `<div class="titem">
+      <div class="trank${hot?' hot':''}">${i+1}</div>
+      <div class="tbody">
+        <div class="tkw">${esc(it.keyword)}</div>
+        <div class="texpl">${esc(it.explanation||'—')}</div>
+        <div class="tmeta"><span class="cpill c-${esc(it.cluster||'overig')}">${esc(it.cluster||'overig')}</span></div>
+      </div>
+      <div class="tscores">
+        <div class="tscore"><div class="ts-lbl">REL</div><div class="ts-val ${sv(it.relevance_score)}">${fmt(it.relevance_score)}</div></div>
+        <div class="tscore"><div class="ts-lbl">SPIKE</div><div class="ts-val ${sv(it.spike_score)}">${fmt(it.spike_score)}</div></div>
+        <div class="tscore"><div class="ts-lbl">CONF</div><div class="ts-val ${sv(it.confidence_score)}">${fmt(it.confidence_score)}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAlerts() {
+  const el = document.getElementById('lst-alerts');
+  if (!alerts.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">🔕</div><div class="empty-ttl">Nog geen meldingen</div><div class="empty-sub">Alerts verschijnen als spike_score > 0.70</div></div>'; return; }
+  el.innerHTML = alerts.slice(0,50).map(a => `
+    <div class="aitem">
+      <div class="aitem-top">
+        <span class="akw">${esc(a.keyword)}</span>
+        <span class="cpill c-${esc(a.cluster||'overig')}">${esc(a.cluster||'overig')}</span>
+        <span class="atime">${new Date(a.ts).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</span>
+      </div>
+      <div class="areason">${esc(a.reason||a.explanation||'—')}</div>
+    </div>`).join('');
+}
+
+// ─── Alert logic ──────────────────────────────────────────
+function checkAlerts(top10, ts) {
+  const newA = [];
+  top10.forEach(it => {
+    const sp = val(it.spike_score);
+    if (sp > .70 || (prevKws.size > 0 && !prevKws.has(it.keyword))) {
+      const reason = sp > .70 ? `Spike ${sp.toFixed(2)} boven drempel` : 'Nieuw in top 10';
+      newA.push({ keyword: it.keyword, cluster: it.cluster, explanation: it.explanation, reason, ts });
+    }
+  });
+  if (newA.length) {
+    alerts = [...newA, ...alerts].slice(0, 100);
+    LS.set('alerts', alerts);
+    newAlertsCount += newA.length;
+    updateBadge();
+    renderAlerts();
+    newA.slice(0,3).forEach(a => { toast(`🔥 ${a.keyword}`, a.reason, 'spike'); pushNotif(a.keyword, a.reason); });
+  }
+  prevKws = new Set(top10.map(it => it.keyword));
+  LS.set('prevKws', [...prevKws]);
+}
+
+// ─── Notifications ────────────────────────────────────────
+let notifOn = Notification.permission === 'granted';
+async function toggleNotif() {
+  if (Notification.permission === 'granted') {
+    notifOn = !notifOn;
+    document.getElementById('notif-btn').className = 'icon-btn' + (notifOn ? ' active' : '');
+    toast('Meldingen ' + (notifOn ? 'aan' : 'uit'), '', '');
+    return;
+  }
+  if (Notification.permission === 'default') {
+    const p = await Notification.requestPermission();
+    if (p === 'granted') { notifOn = true; document.getElementById('notif-btn').className = 'icon-btn active'; toast('✅ Meldingen ingeschakeld', 'Je ontvangt pushberichten bij sterke spikes', ''); }
+  }
+}
+
+function pushNotif(title, body) {
+  if (!notifOn || Notification.permission !== 'granted') return;
+  navigator.serviceWorker.ready.then(reg => reg.showNotification('🔥 DB Trends — ' + title, { body, icon: 'icon.png', tag: 'dbt-' + title })).catch(() => {});
+}
+
+// ─── Helpers ──────────────────────────────────────────────
+const comp = it => val(it.relevance_score)*.45 + val(it.spike_score)*.35 + val(it.confidence_score)*.20;
+const val  = v  => Math.min(1, Math.max(0, parseFloat(v) || 0));
+const fmt  = v  => val(v).toFixed(2);
+const sv   = v  => val(v) >= .75 ? 'sv-h' : val(v) >= .50 ? 'sv-m' : 'sv-l';
+const esc  = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function scheduleNext() {
+  clearTimeout(refreshTimer); clearInterval(countdownTimer);
+  nextAt = Date.now() + 900000; // 15 min
+  refreshTimer = setTimeout(() => load(), 900000);
+  countdownTimer = setInterval(() => {
+    const s = Math.max(0, Math.round((nextAt - Date.now()) / 1000));
+    document.getElementById('sv-next').textContent = `Volgende: ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    if (s <= 0) clearInterval(countdownTimer);
+  }, 1000);
+}
+
+function updateBadge() {
+  const b = document.getElementById('abadge');
+  b.style.display = newAlertsCount > 0 ? '' : 'none';
+  b.textContent = newAlertsCount;
+}
+
+// ─── Toast ────────────────────────────────────────────────
+function toast(title, body, cls) {
+  const area = document.getElementById('toast-area');
+  const el = document.createElement('div');
+  el.className = 'toast' + (cls ? ' ' + cls : '');
+  el.innerHTML = `<div class="toast-hd">${esc(title)}<button class="toast-x" onclick="this.closest('.toast').remove()">✕</button></div>${body ? `<div class="toast-bd">${esc(body)}</div>` : ''}`;
+  area.appendChild(el);
+  setTimeout(() => { el.style.animation = 'tout .22s ease forwards'; setTimeout(() => el.remove(), 230); }, 4500);
+}
+
+// ─── Tab switching ────────────────────────────────────────
+function tab(id, btn) {
+  ['top10','spikes','alerts','setup'].forEach(t => document.getElementById('tab-'+t).style.display = t===id ? '' : 'none');
+  document.querySelectorAll('.ntab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  if (id === 'alerts') { newAlertsCount = 0; updateBadge(); renderAlerts(); }
+}
+
+// ─── Config save ──────────────────────────────────────────
+function saveConfig() {
+  sheetsUrl = document.getElementById('sheets-url-input').value.trim();
+  LS.set('sheetsUrl', sheetsUrl);
+  const ok = document.getElementById('save-ok');
+  ok.style.display = 'inline';
+  setTimeout(() => ok.style.display = 'none', 2000);
+  load(true);
+}
+
+function copyBox(el, text) {
+  navigator.clipboard.writeText(text).catch(() => {});
+  const ex = el.querySelector('.cbox-ok'); if (ex) ex.remove();
+  const t = document.createElement('span'); t.className = 'cbox-ok'; t.textContent = '✓';
+  el.appendChild(t); setTimeout(() => t.remove(), 1500);
+}
+
+// ─── Boot ─────────────────────────────────────────────────
+load();
+renderAlerts();
+</script>
+</body>
+</html>
