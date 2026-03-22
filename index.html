@@ -462,16 +462,20 @@ async function loadNieuws(force) {
   el.innerHTML = '<div class="empty"><div class="empty-ico">⏳</div><div class="empty-ttl">Trends laden...</div></div>';
 
   try {
-    // Haal de gid van het Trending Now tabblad op
     const base = TRENDING_CSV + '&_=' + Date.now();
-    const proxies = [base, 'https://api.allorigins.win/raw?url=' + encodeURIComponent(base)];
+    const proxies = [
+      base,
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(base),
+      'https://corsproxy.io/?' + encodeURIComponent(base),
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(base),
+    ];
     let rows = [];
     for (const url of proxies) {
       try {
         const r = await fetch(url, {cache:'no-store'});
         if (!r.ok) continue;
         const txt = await r.text();
-        if (!txt || txt.includes('<html')) continue;
+        if (!txt || txt.length < 20 || txt.includes('<html')) continue;
         rows = parseCSV(txt).filter(r => r.keyword && r.keyword.length > 1);
         if (rows.length > 0) break;
       } catch(e) { continue; }
