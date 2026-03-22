@@ -261,7 +261,6 @@ a{color:inherit;text-decoration:none}
     <button class="ntab on"  onclick="tab('top10',this)">📈 Top 10</button>
     <button class="ntab"     onclick="tab('spikes',this)">🚀 Uitschieters</button>
     <button class="ntab"     onclick="tab('alerts',this)">🔔 Meldingen<span class="nbadge" id="abadge" style="display:none">0</span></button>
-    <button class="ntab"     onclick="tab('setup',this)">⚙️ Instellen</button>
   </div>
 </nav>
 
@@ -320,92 +319,6 @@ a{color:inherit;text-decoration:none}
     </div>
   </div>
 
-  <!-- Tab: Setup -->
-  <div id="tab-setup" style="display:none">
-    <div class="card">
-      <div class="card-head"><span class="card-title">⚙️ Eenmalige installatie</span><span class="card-meta">~30 minuten</span></div>
-      <div style="padding:18px 16px">
-
-        <div class="setup-block">
-          <div class="setup-hd">📊 Stap 1 — Google Sheets klaarzetten <span style="font-size:11px;color:var(--muted);font-weight:400">(5 min)</span></div>
-          <div class="setup-step"><div class="sn">1</div><div class="sc"><h4>Maak een nieuw Google Spreadsheet</h4><p>Ga naar sheets.google.com → Nieuw → Naam: <strong>De Belegger Trends</strong></p></div></div>
-          <div class="setup-step"><div class="sn">2</div><div class="sc"><h4>Open het Apps Script</h4><p>Extensies → Apps Script → verwijder alle code → plak de volledige inhoud van <strong>Code.gs</strong> (zit in de gedownloade zip)</p></div></div>
-          <div class="setup-step"><div class="sn">3</div><div class="sc"><h4>Vul je API-sleutels in bovenaan Code.gs</h4><p>Vervang de 3 JOUW_... waarden met je echte sleutels (zie stap 2 en 3 hieronder)</p></div></div>
-          <div class="setup-step"><div class="sn">4</div><div class="sc"><h4>Voer setupSheets() uit</h4><p>Kies in het dropdown-menu de functie <strong>setupSheets</strong> → klik Uitvoeren → geef toestemming</p></div></div>
-          <div class="setup-step"><div class="sn">5</div><div class="sc"><h4>Voer setupTrigger() uit</h4><p>Kies in het dropdown-menu <strong>setupTrigger</strong> → klik Uitvoeren. Het systeem draait nu elke 15 minuten automatisch.</p></div></div>
-          <div class="setup-step"><div class="sn">6</div><div class="sc">
-            <h4>Publiceer tabblad als CSV voor de app</h4>
-            <p>Bestand → Delen → Publiceren op het web → Tabblad "Ranked Trends" → CSV → Publiceren → kopieer de URL</p>
-            <p>Vul die URL hieronder in en klik Opslaan:</p>
-            <input id="sheets-url-input" type="text" placeholder="https://docs.google.com/spreadsheets/d/.../pub?...output=csv"
-              style="width:100%;background:var(--bg);border:1px solid var(--brd);border-radius:var(--r8);padding:8px 11px;font-size:12px;color:var(--txt);font-family:var(--mono);margin-bottom:8px;outline:none"
-              oninput="dirtyConfig=true">
-            <button onclick="saveConfig()" style="background:var(--acc);color:#fff;border:none;border-radius:var(--r8);padding:8px 16px;font-size:13px;font-weight:600">Opslaan</button>
-            <span id="save-ok" style="font-size:12px;color:var(--grn);margin-left:10px;display:none">✓ Opgeslagen</span>
-          </div></div>
-        </div>
-
-        <hr class="divider">
-
-        <div class="setup-block">
-          <div class="setup-hd">🤖 Stap 2 — Anthropic API key <span style="font-size:11px;color:var(--muted);font-weight:400">(2 min)</span></div>
-          <div class="setup-step"><div class="sn">1</div><div class="sc">
-            <h4>Maak een account op console.anthropic.com</h4>
-            <div class="cbox" onclick="copyBox(this,'https://console.anthropic.com/settings/keys')">https://console.anthropic.com/settings/keys</div>
-          </div></div>
-          <div class="setup-step"><div class="sn">2</div><div class="sc">
-            <h4>Maak een nieuwe API key aan</h4>
-            <p>API Keys → Create Key → kopieer de key (begint met sk-ant-...)</p>
-            <p>Plak de key in <strong>Code.gs</strong> bij <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">ANTHROPIC_API_KEY</code></p>
-            <div class="note">💡 Kosten: ~€2–5 per maand bij elke-15-minuten gebruik</div>
-          </div></div>
-        </div>
-
-        <hr class="divider">
-
-        <div class="setup-block">
-          <div class="setup-hd">📱 Stap 3 — Telegram bot <span style="font-size:11px;color:var(--muted);font-weight:400">(5 min)</span></div>
-          <div class="setup-step"><div class="sn">1</div><div class="sc">
-            <h4>Open Telegram → stuur naar @BotFather</h4>
-            <div class="cbox" onclick="copyBox(this,'/newbot')">/newbot</div>
-            <p style="margin-top:6px">Naam: <strong>De Belegger Trends</strong> · Username mag eindigen op Bot</p>
-          </div></div>
-          <div class="setup-step"><div class="sn">2</div><div class="sc">
-            <h4>Kopieer het Bot Token en vul in Code.gs</h4>
-            <p>Ziet eruit als: <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">7312345678:AAFxxx</code></p>
-          </div></div>
-          <div class="setup-step"><div class="sn">3</div><div class="sc">
-            <h4>Maak een teamgroep → voeg bot toe als admin</h4>
-            <p>Stuur een bericht in de groep. Ga daarna naar deze URL (vervang TOKEN):</p>
-            <div class="cbox" onclick="copyBox(this,'https://api.telegram.org/botTOKEN/getUpdates')">https://api.telegram.org/bot<strong>TOKEN</strong>/getUpdates</div>
-            <p style="margin-top:6px">Zoek in de JSON naar "chat" → "id" — dat is je Chat ID. Vul in bij <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">TELEGRAM_CHAT_ID</code> in Code.gs</p>
-          </div></div>
-        </div>
-
-        <hr class="divider">
-
-        <div class="setup-block">
-          <div class="setup-hd">🚀 Stap 4 — App deployen op Vercel <span style="font-size:11px;color:var(--muted);font-weight:400">(5 min)</span></div>
-          <div class="setup-step"><div class="sn">1</div><div class="sc">
-            <h4>Gratis account op Vercel</h4>
-            <div class="cbox" onclick="copyBox(this,'https://vercel.com/signup')">https://vercel.com/signup</div>
-          </div></div>
-          <div class="setup-step"><div class="sn">2</div><div class="sc">
-            <h4>Deploy de app</h4>
-            <p>vercel.com/new → sleep de <strong>app-map</strong> (uit de zip) op het scherm → Deploy. Je krijgt een URL zoals <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">belegger-trends.vercel.app</code></p>
-          </div></div>
-          <div class="setup-step"><div class="sn">3</div><div class="sc">
-            <h4>Installeer op telefoon &amp; laptop</h4>
-            <p><strong>iPhone:</strong> Safari → Deel → Voeg toe aan beginscherm<br>
-            <strong>Android:</strong> Chrome → ⋮ → Toevoegen aan beginscherm<br>
-            <strong>Laptop:</strong> Chrome/Edge → installeer-icoon in adresbalk</p>
-            <div class="ok-box">✓ Klaar! De app ontvangt nu automatisch data van je Google Sheet.</div>
-          </div></div>
-        </div>
-
-      </div>
-    </div>
-  </div>
 
 </div><!-- /page -->
 
@@ -434,8 +347,7 @@ const DEMO_DATA = [
 // ─── State ───────────────────────────────────────────────
 let data = [], alerts = LS.get('alerts') || [], prevKws = new Set(LS.get('prevKws') || []);
 let newAlertsCount = 0, refreshTimer, countdownTimer, nextAt, deferredInstall;
-let dirtyConfig = false;
-let sheetsUrl = LS.get('sheetsUrl') || '';
+const sheetsUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRFuSMQl-nLZ1f_1VO5Z8TKs0abgXR_xJRAiIxM_XMTdyEf25uvvj8Aq2RBMdRxyrQ8CXNOjA4FuXc0/pub?gid=1550970841&single=true&output=csv';
 
 // ─── Init ────────────────────────────────────────────────
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -454,9 +366,6 @@ document.getElementById('ib-btn').onclick = async () => {
 };
 
 function dismissInstall() { LS.set('installDismissed', 1); document.getElementById('install-bar').classList.remove('show'); }
-
-// Pre-fill saved URL
-if (sheetsUrl) document.getElementById('sheets-url-input').value = sheetsUrl;
 
 // ─── Data loading ────────────────────────────────────────
 async function load(manual) {
@@ -643,27 +552,10 @@ function toast(title, body, cls) {
 
 // ─── Tab switching ────────────────────────────────────────
 function tab(id, btn) {
-  ['top10','spikes','alerts','setup'].forEach(t => document.getElementById('tab-'+t).style.display = t===id ? '' : 'none');
+  ['top10','spikes','alerts'].forEach(t => document.getElementById('tab-'+t).style.display = t===id ? '' : 'none');
   document.querySelectorAll('.ntab').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
   if (id === 'alerts') { newAlertsCount = 0; updateBadge(); renderAlerts(); }
-}
-
-// ─── Config save ──────────────────────────────────────────
-function saveConfig() {
-  sheetsUrl = document.getElementById('sheets-url-input').value.trim();
-  LS.set('sheetsUrl', sheetsUrl);
-  const ok = document.getElementById('save-ok');
-  ok.style.display = 'inline';
-  setTimeout(() => ok.style.display = 'none', 2000);
-  load(true);
-}
-
-function copyBox(el, text) {
-  navigator.clipboard.writeText(text).catch(() => {});
-  const ex = el.querySelector('.cbox-ok'); if (ex) ex.remove();
-  const t = document.createElement('span'); t.className = 'cbox-ok'; t.textContent = '✓';
-  el.appendChild(t); setTimeout(() => t.remove(), 1500);
 }
 
 // ─── Boot ─────────────────────────────────────────────────
