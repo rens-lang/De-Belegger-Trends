@@ -452,79 +452,61 @@ function tab(id,btn){
   if(id==='alerts'){newAlertsCount=0;updateBadge();renderAlerts();}
   if(id==='nieuws') loadNieuws();
 }
-// ── Nieuwstrends ─────────────────────────────────────────
-let nieuwsLoaded = false;
+// ── Nieuwstrends — leest uit Google Sheets (gevuld door Apps Script) ──
+const TRENDING_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRFuSMQl-nLZ1f_1VO5Z8TKs0abgXR_xJRAiIxM_XMTdyEf25uvvj8Aq2RBMdRxyrQ8CXNOjA4FuXc0/pub?gid=581859345&single=true&output=csv';
 let nieuwsTimer = null;
 
 async function loadNieuws(force) {
-  if (nieuwsLoaded && !force) return;
   const el = document.getElementById('lst-nieuws');
   if (!el) return;
-  el.innerHTML = '<div class="empty"><div class="empty-ico">⏳</div><div class="empty-ttl">Trends ophalen...</div></div>';
+  el.innerHTML = '<div class="empty"><div class="empty-ico">⏳</div><div class="empty-ttl">Trends laden...</div></div>';
 
-  const rssUrl = 'https://trends.google.com/trending/rss?geo=NL';
-  const proxies = [
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent(rssUrl),
-    'https://corsproxy.io/?' + encodeURIComponent(rssUrl),
-    'https://thingproxy.freeboard.io/fetch/' + rssUrl,
-  ];
-
-  let items = [];
-  for (const url of proxies) {
-    try {
-      const r = await fetch(url, { cache: 'no-store' });
-      if (!r.ok) continue;
-      const txt = await r.text();
-      if (!txt || txt.includes('<html') && !txt.includes('<rss')) continue;
-      items = parseRSS(txt);
-      if (items.length > 0) break;
-    } catch(e) { continue; }
-  }
-
-  if (items.length === 0) {
-    el.innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-ttl">Kan Google Trends niet laden</div><div class="empty-sub">Probeer het opnieuw</div></div>';
-    return;
-  }
-
-  const now = new Date().toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit'});
-  el.innerHTML = items.slice(0,20).map((item, i) => {
-    const isNew = i < 3;
-    return `<div class="titem">
-      <div class="trank" style="${i<3?'background:#fef2f2;color:var(--red);':'background:var(--blue-light);color:var(--blue);'}">${i+1}</div>
-      <div class="tbody">
-        <div class="tkw" style="font-size:15px">${esc(item.title)}</div>
-        ${item.desc ? `<div class="texpl">${esc(item.desc)}</div>` : ''}
-        <div class="tmeta">
-          ${item.traffic ? `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#fef2f2;color:var(--red);border:1px solid #fecaca">${esc(item.traffic)} zoekopdrachten</span>` : ''}
-          ${isNew ? '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0">🔴 Trending</span>' : ''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
-  nieuwsLoaded = true;
-
-  // Auto-refresh elke 15 min
-  clearTimeout(nieuwsTimer);
-  nieuwsTimer = setTimeout(() => { nieuwsLoaded = false; }, 900000);
-}
-
-function parseRSS(xml) {
-  const items = [];
-  const matches = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
-  matches.forEach(item => {
-    const titleM = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || item.match(/<title>(.*?)<\/title>/);
-    const descM  = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/) || item.match(/<ht:approx_traffic>(.*?)<\/ht:approx_traffic>/);
-    const traffM = item.match(/<ht:approx_traffic>(.*?)<\/ht:approx_traffic>/);
-    if (titleM && titleM[1]) {
-      items.push({
-        title:   titleM[1].replace(/<[^>]+>/g,'').trim(),
-        desc:    descM  ? descM[1].replace(/<[^>]+>/g,'').substring(0,120).trim() : '',
-        traffic: traffM ? traffM[1].trim() : '',
-      });
+  try {
+    // Haal de gid van het Trending Now tabblad op
+    const base = TRENDING_CSV + '&_=' + Date.now();
+    const proxies = [base, 'https://api.allorigins.win/raw?url=' + encodeURIComponent(base)];
+    let rows = [];
+    for (const url of proxies) {
+      try {
+        const r = await fetch(url, {cache:'no-store'});
+        if (!r.ok) continue;
+        const txt = await r.text();
+        if (!txt || txt.includes('<html')) continue;
+        rows = parseCSV(txt).filter(r => r.keyword && r.keyword.length > 1);
+        if (rows.length > 0) break;
+      } catch(e) { continue; }
     }
-  });
-  return items;
+
+    if (rows.length === 0) {
+      el.innerHTML = '<div class="empty"><div class="empty-ico">⏳</div><div class="empty-ttl">Nog geen data</div><div class="empty-sub">Apps Script vult dit tabblad elke 15 min. Voer testRun() uit in Apps Script om direct te vullen.</div></div>';
+      return;
+    }
+
+    const updated = rows[0].updated ? new Date(rows[0].updated).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}) : '—';
+    document.querySelector('#tab-nieuws .card-head .card-meta') && (document.querySelector('#tab-nieuws .card-head .card-meta').textContent = 'Bijgewerkt om ' + updated);
+
+    el.innerHTML = rows.slice(0,20).map((item, i) => {
+      const top3 = i < 3;
+      return `<div class="titem">
+        <div class="trank" style="${top3?'background:#fef2f2;color:var(--red);font-size:13px':'background:var(--blue-light);color:var(--blue)'}">${i+1}</div>
+        <div class="tbody" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <div class="tkw" style="font-size:15px">${esc(item.keyword)}</div>
+            <div class="tmeta" style="margin-top:5px">
+              ${item.traffic ? `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#fef2f2;color:var(--red);border:1px solid #fecaca">${esc(item.traffic)}</span>` : ''}
+              ${top3 ? '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0">🔴 Trending</span>' : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    clearTimeout(nieuwsTimer);
+    nieuwsTimer = setTimeout(() => loadNieuws(), 900000);
+
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-ttl">Laad fout</div><div class="empty-sub">${esc(e.message)}</div></div>`;
+  }
 }
 
 load();renderAlerts();
