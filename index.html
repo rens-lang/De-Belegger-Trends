@@ -173,6 +173,7 @@ button{cursor:pointer;font-family:var(--font)}
     <button class="ntab on" onclick="tab('top10',this)">Top 10 Trends</button>
     <button class="ntab"    onclick="tab('spikes',this)">Uitschieters</button>
     <button class="ntab"    onclick="tab('seo',this)">SEO Kansen</button>
+    <button class="ntab"    onclick="tab('nieuws',this)">🔴 Nieuwstrends NL</button>
     <button class="ntab"    onclick="tab('alerts',this)">Meldingen<span class="nbadge" id="abadge" style="display:none">0</span></button>
   </div>
 </nav>
@@ -226,6 +227,19 @@ button{cursor:pointer;font-family:var(--font)}
       <div id="lst-seo-partial"></div>
       <div class="section-label">AANWEZIG — Goede bestaande content</div>
       <div id="lst-seo-present"></div>
+    </div>
+  </div>
+
+  <div id="tab-nieuws" style="display:none">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">🔴 Top 20 Trending Searches — Nederland</span>
+        <button onclick="loadNieuws(true)" style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer">↻ Nu verversen</button>
+      </div>
+      <div style="padding:10px 18px;background:#fff8f0;border-bottom:1px solid var(--brd);font-size:12px;color:#92400e">
+        Live via Google Trends Nederland · Ongefilterd · Ververs elke 15 min
+      </div>
+      <div id="lst-nieuws"><div class="empty"><div class="empty-ico">⏳</div><div class="empty-ttl">Trends laden</div></div></div>
     </div>
   </div>
 
@@ -432,11 +446,87 @@ function toast(title,body,cls){
   area.appendChild(el);setTimeout(()=>{el.style.animation='tout .22s ease forwards';setTimeout(()=>el.remove(),230);},4500);
 }
 function tab(id,btn){
-  ['top10','spikes','seo','alerts'].forEach(t=>document.getElementById('tab-'+t).style.display=t===id?'':'none');
+  ['top10','spikes','seo','nieuws','alerts'].forEach(t=>document.getElementById('tab-'+t).style.display=t===id?'':'none');
   document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   if(id==='alerts'){newAlertsCount=0;updateBadge();renderAlerts();}
+  if(id==='nieuws') loadNieuws();
 }
+// ── Nieuwstrends ─────────────────────────────────────────
+let nieuwsLoaded = false;
+let nieuwsTimer = null;
+
+async function loadNieuws(force) {
+  if (nieuwsLoaded && !force) return;
+  const el = document.getElementById('lst-nieuws');
+  if (!el) return;
+  el.innerHTML = '<div class="empty"><div class="empty-ico">⏳</div><div class="empty-ttl">Trends ophalen...</div></div>';
+
+  const rssUrl = 'https://trends.google.com/trending/rss?geo=NL';
+  const proxies = [
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(rssUrl),
+    'https://corsproxy.io/?' + encodeURIComponent(rssUrl),
+    'https://thingproxy.freeboard.io/fetch/' + rssUrl,
+  ];
+
+  let items = [];
+  for (const url of proxies) {
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) continue;
+      const txt = await r.text();
+      if (!txt || txt.includes('<html') && !txt.includes('<rss')) continue;
+      items = parseRSS(txt);
+      if (items.length > 0) break;
+    } catch(e) { continue; }
+  }
+
+  if (items.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-ttl">Kan Google Trends niet laden</div><div class="empty-sub">Probeer het opnieuw</div></div>';
+    return;
+  }
+
+  const now = new Date().toLocaleTimeString('nl-NL', {hour:'2-digit',minute:'2-digit'});
+  el.innerHTML = items.slice(0,20).map((item, i) => {
+    const isNew = i < 3;
+    return `<div class="titem">
+      <div class="trank" style="${i<3?'background:#fef2f2;color:var(--red);':'background:var(--blue-light);color:var(--blue);'}">${i+1}</div>
+      <div class="tbody">
+        <div class="tkw" style="font-size:15px">${esc(item.title)}</div>
+        ${item.desc ? `<div class="texpl">${esc(item.desc)}</div>` : ''}
+        <div class="tmeta">
+          ${item.traffic ? `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#fef2f2;color:var(--red);border:1px solid #fecaca">${esc(item.traffic)} zoekopdrachten</span>` : ''}
+          ${isNew ? '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0">🔴 Trending</span>' : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  nieuwsLoaded = true;
+
+  // Auto-refresh elke 15 min
+  clearTimeout(nieuwsTimer);
+  nieuwsTimer = setTimeout(() => { nieuwsLoaded = false; }, 900000);
+}
+
+function parseRSS(xml) {
+  const items = [];
+  const matches = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
+  matches.forEach(item => {
+    const titleM = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || item.match(/<title>(.*?)<\/title>/);
+    const descM  = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/) || item.match(/<ht:approx_traffic>(.*?)<\/ht:approx_traffic>/);
+    const traffM = item.match(/<ht:approx_traffic>(.*?)<\/ht:approx_traffic>/);
+    if (titleM && titleM[1]) {
+      items.push({
+        title:   titleM[1].replace(/<[^>]+>/g,'').trim(),
+        desc:    descM  ? descM[1].replace(/<[^>]+>/g,'').substring(0,120).trim() : '',
+        traffic: traffM ? traffM[1].trim() : '',
+      });
+    }
+  });
+  return items;
+}
+
 load();renderAlerts();
 </script>
 </body>
